@@ -1,23 +1,24 @@
-name: Generate status page
-
-on: workflow_dispatch
-
 jobs:
   generate-status-page:
-    if: github.repository == 'kiegroup/optaplanner'
     concurrency:
-      group: generate-status-page
       cancel-in-progress: true
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-      fail-fast: true
-    runs-on: ubuntu-latest
+      group: generate-status-page
+    if: github.repository == 'kiegroup/optaplanner'
     name: Generate status page
+    runs-on: self-hosted
     steps:
-      - name: Generate status page
-        uses: kiegroup/chain-status/.ci/actions/generate-app@main
-        with:
-          info-md-url: "https://raw.githubusercontent.com/kiegroup/optaplanner/main/.ci/chain-status-info.md"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-
+    - continue-on-error: true
+      name: Generate status page
+      uses: kiegroup/chain-status/.ci/actions/generate-app@main
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        info-md-url: https://raw.githubusercontent.com/kiegroup/optaplanner/main/.ci/chain-status-info.md
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+        - ubuntu-latest
+name: Generate status page
+on:
+  repository_dispatch:
+    types: trigger-ga___generate_status_page.yaml

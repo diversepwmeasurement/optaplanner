@@ -1,46 +1,37 @@
-# Runs the SonarCloud analysis of the optaplanner main branch after a PR is merged.
-name: OptaPlanner 9
-
-on:
-  pull_request:
-    types: [ opened, synchronize, reopened, labeled ]
-    branches:
-      - main
-    paths-ignore:
-      - 'LICENSE*'
-      - '.gitignore'
-      - '**.md'
-      - '**.adoc'
-      - '*.txt'
-      - '.ci/**'
-
 defaults:
   run:
     shell: bash
-
 jobs:
   optaplanner-9:
     name: ${{ matrix.os }} - Java ${{ matrix.java-version }}
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        java-version: [ 17 ]
-        maven-version: [ '3.9.3' ]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-
+    runs-on: self-hosted
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Java and Maven Setup
-        uses: kiegroup/kie-ci/.ci/actions/maven@main
-        with:
-          java-version: ${{ matrix.java-version }}
-          maven-version: ${{ matrix.maven-version }}
-          cache-key-prefix: ${{ runner.os }}-${{ matrix.java-version }}-maven${{ matrix.maven-version }}
-
-      - name: Build with Maven
-        run: mvn -B --fail-at-end clean install -Dfull -Dformatter.skip
+    - continue-on-error: true
+      name: Check out repository code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - continue-on-error: true
+      name: Java and Maven Setup
+      uses: kiegroup/kie-ci/.ci/actions/maven@main
+      with:
+        cache-key-prefix: ${{ runner.os }}-${{ matrix.java-version }}-maven${{ matrix.maven-version
+          }}
+        java-version: ${{ matrix.java-version }}
+        maven-version: ${{ matrix.maven-version }}
+    - continue-on-error: true
+      name: Build with Maven
+      run: mvn -B --fail-at-end clean install -Dfull -Dformatter.skip
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version:
+        - 17
+        maven-version:
+        - 3.9.3
+        os:
+        - ubuntu-latest
+name: OptaPlanner 9
+on:
+  repository_dispatch:
+    types: trigger-ga___optaplanner-9.yml

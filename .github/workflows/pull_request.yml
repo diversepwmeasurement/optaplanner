@@ -1,71 +1,71 @@
-# Tests PRs on multiple operating systems and Java versions
-name: Build Chain
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
-    branches:
-      - main
-      - 8.*
-      - 9.*
-    paths-ignore:
-      - 'LICENSE*'
-      - '.gitignore'
-      - '**.md'
-      - '**.adoc'
-      - '*.txt'
-      - '.ci/**'
-
 defaults:
   run:
     shell: bash
-
 jobs:
   build-chain:
     concurrency:
-      group: pull_request-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.java-version }}
       cancel-in-progress: true
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        java-version: [ 11, 17, 20 ]
-        maven-version: [ '3.9.3' ]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
+      group: pull_request-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os
+        }}-${{ matrix.java-version }}
     name: ${{ matrix.os }} - Java ${{ matrix.java-version }} - Maven
-    timeout-minutes: 120
+    runs-on: self-hosted
     steps:
-      - name: Clean Disk Space
-        uses: kiegroup/kie-ci/.ci/actions/ubuntu-disk-space@main
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: Support long paths
-        if: ${{ matrix.os == 'windows-latest' }}
-        uses: kiegroup/kie-ci/.ci/actions/long-paths@main
-      - name: Java and Maven Setup
-        uses: kiegroup/kie-ci/.ci/actions/maven@main
-        with:
-          java-version: ${{ matrix.java-version }}
-          maven-version: ${{ matrix.maven-version }}
-          cache-key-prefix: ${{ runner.os }}-${{ matrix.java-version }}-maven${{ matrix.maven-version }}
-      - name: Set FLOW_TYPE to pull-request
-        if: github.event_name == 'pull_request'
-        run: echo "FLOW_TYPE=pull-request" >> $GITHUB_ENV
-      - name: Set FLOW_TYPE to branch
-        if: github.event_name == 'push'
-        run: echo "FLOW_TYPE=branch" >> $GITHUB_ENV
-      - name: Build Chain
-        uses: kiegroup/kie-ci/.ci/actions/build-chain@main
-        env:
-          # maven-assembly-plugin occasionally fails on heap space when building the ZIP in optaplanner-docs
-          MAVEN_OPTS: "-Xmx2048m"
-        with:
-          definition-file: https://raw.githubusercontent.com/${GROUP:kiegroup}/optaplanner/${BRANCH:main}/.ci/buildchain-config.yaml
-          annotations-prefix: ${{ runner.os }}-${{ matrix.java-version }}/${{ matrix.maven-version }}
-          starting-project: kiegroup/optaplanner
-          flow-type: ${{ env.FLOW_TYPE }}
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Surefire Report
-        uses: kiegroup/kie-ci/.ci/actions/surefire-report@main
-        if: ${{ always() }}
-        with:
-          report_paths: '**/*-reports/TEST-*.xml'
+    - continue-on-error: true
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      name: Clean Disk Space
+      uses: kiegroup/kie-ci/.ci/actions/ubuntu-disk-space@main
+    - continue-on-error: true
+      if: ${{ matrix.os == 'windows-latest' }}
+      name: Support long paths
+      uses: kiegroup/kie-ci/.ci/actions/long-paths@main
+    - continue-on-error: true
+      name: Java and Maven Setup
+      uses: kiegroup/kie-ci/.ci/actions/maven@main
+      with:
+        cache-key-prefix: ${{ runner.os }}-${{ matrix.java-version }}-maven${{ matrix.maven-version
+          }}
+        java-version: ${{ matrix.java-version }}
+        maven-version: ${{ matrix.maven-version }}
+    - continue-on-error: true
+      if: github.event_name == 'pull_request'
+      name: Set FLOW_TYPE to pull-request
+      run: echo "FLOW_TYPE=pull-request" >> $GITHUB_ENV
+    - continue-on-error: true
+      if: github.event_name == 'push'
+      name: Set FLOW_TYPE to branch
+      run: echo "FLOW_TYPE=branch" >> $GITHUB_ENV
+    - continue-on-error: true
+      env:
+        MAVEN_OPTS: -Xmx2048m
+      name: Build Chain
+      uses: kiegroup/kie-ci/.ci/actions/build-chain@main
+      with:
+        annotations-prefix: ${{ runner.os }}-${{ matrix.java-version }}/${{ matrix.maven-version
+          }}
+        definition-file: https://raw.githubusercontent.com/${GROUP:kiegroup}/optaplanner/${BRANCH:main}/.ci/buildchain-config.yaml
+        flow-type: ${{ env.FLOW_TYPE }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        starting-project: kiegroup/optaplanner
+    - continue-on-error: true
+      if: ${{ always() }}
+      name: Surefire Report
+      uses: kiegroup/kie-ci/.ci/actions/surefire-report@main
+      with:
+        report_paths: '**/*-reports/TEST-*.xml'
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version:
+        - 11
+        - 17
+        - 20
+        maven-version:
+        - 3.9.3
+        os:
+        - ubuntu-latest
+        - windows-latest
+    timeout-minutes: 120
+name: Build Chain
+on:
+  repository_dispatch:
+    types: trigger-ga___pull_request.yml

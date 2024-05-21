@@ -1,31 +1,31 @@
-name: Generate status page data
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'
 jobs:
   generate-status-page-data:
-    if: github.repository == 'kiegroup/optaplanner'
     concurrency:
-      group: generate-status-page-data
       cancel-in-progress: true
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-      fail-fast: true
-    runs-on: ubuntu-latest
+      group: generate-status-page-data
+    if: github.repository == 'kiegroup/optaplanner'
     name: Generate status page data
+    runs-on: self-hosted
     steps:
-      - name: Generate status page data
-        uses: kiegroup/chain-status/.ci/actions/generate-data@main
-        with:
-          definition-file: https://raw.githubusercontent.com/kiegroup/optaplanner/main/.ci/builchain-config.yaml
-          title: Pull Request Status
-          subtitle: OptaPlanner organization repositories CI Status
-          base-branch-filter: main,8\.*
-          project-filter: kiegroup/opta.*$
-          created-by: GitHub Action
-          created-url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-
+    - continue-on-error: true
+      name: Generate status page data
+      uses: kiegroup/chain-status/.ci/actions/generate-data@main
+      with:
+        base-branch-filter: main,8\.*
+        created-by: GitHub Action
+        created-url: https://github.com/${{ github.repository }}/actions/runs/${{
+          github.run_id }}
+        definition-file: https://raw.githubusercontent.com/kiegroup/optaplanner/main/.ci/builchain-config.yaml
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        project-filter: kiegroup/opta.*$
+        subtitle: OptaPlanner organization repositories CI Status
+        title: Pull Request Status
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+        - ubuntu-latest
+name: Generate status page data
+on:
+  repository_dispatch:
+    types: trigger-ga___generate_status_page_data.yaml
